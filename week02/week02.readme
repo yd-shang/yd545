@@ -1,0 +1,6 @@
+All the related code for a problem is contained in one file. 
+Running the Python file for a problem will provide you with the results for all its sub-questions.
+
+All the packages be used: numpy, pandas, scipy.stats, scipy.optimize, scipy.special, statsmodels.api, statsmodels.graphics.tsaplots, matplotlib.pyplot
+
+Comment #p1-1 means the following code is for the first sub-question for Problem 1
