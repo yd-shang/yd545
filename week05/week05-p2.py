@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import norm, t
 
-file_path = '/Users/shangyudi/Desktop/Duke/2024fall/quantitative risk management/week05/problem1.csv'
+file_path = 'problem1.csv'
 data = pd.read_csv(file_path)
 
 confidence_level = 0.95
