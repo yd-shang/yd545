@@ -196,46 +196,37 @@ print(portfolio_metrics_df)
 
 
 #2 - only aapl
-# Calculate log returns for AAPL
-daily_prices['AAPL_log_return'] = np.log(daily_prices['AAPL'] / daily_prices['AAPL'].shift(1))
+data = pd.read_csv('/Users/shangyudi/Desktop/Duke/2024fall/quantitative risk management/week06/DailyPrices.csv')
+# Calculate log returns of AAPL
+data['AAPL_Log_Return'] = np.log(data['AAPL'] / data['AAPL'].shift(1))
+aapl_log_returns = data['AAPL_Log_Return'].dropna()
 
-# Demean the series
-aapl_log_returns_demeaned = daily_prices['AAPL_log_return'].dropna() - daily_prices['AAPL_log_return'].mean()
+# Demean the log returns
+demeaned_returns = aapl_log_returns - aapl_log_returns.mean()
 
-# Fit an AR(1) model to the demeaned log returns
-ar_model = AutoReg(aapl_log_returns_demeaned, lags=1).fit()
+# Fit an AR(1) model to the demeaned returns
+ar_model = AutoReg(demeaned_returns, lags=1).fit()
 
-# Get model parameters
-alpha = ar_model.params['const']
-beta = ar_model.params['AAPL_log_return.L1']
-sigma = ar_model.resid.std()
+# Simulate 10 days ahead using the AR(1) model
+num_simulations = 1000  # Number of paths for simulation
+current_price = 170.15
+simulated_returns = []
 
-# Set the current AAPL price
-current_aapl_price = 170.15
+for _ in range(num_simulations):
+    simulated_path = [current_price]
+    last_return = demeaned_returns.iloc[-1]
+    
+    for _ in range(10):
+        next_return = ar_model.params['const'] + ar_model.params['AAPL_Log_Return.L1'] * last_return + np.random.normal(scale=ar_model.sigma2**0.5)
+        simulated_price = simulated_path[-1] * np.exp(next_return)
+        simulated_path.append(simulated_price)
+        last_return = next_return
+    
+    simulated_returns.append(simulated_path[-1])
 
-# Number of days to simulate
-num_days = 10
+# Calculate Mean, VaR (5% level), and ES (Expected Shortfall at 5% level)
+mean_price = np.mean(simulated_returns)
+var_95 = np.percentile(simulated_returns, 5)
+es_95 = np.mean([x for x in simulated_returns if x <= var_95])
 
-# Generate 10 days of simulated returns using AR(1) process
-simulated_returns = [0]  # Start with zero to represent today's return
-for _ in range(num_days):
-    new_return = alpha + beta * simulated_returns[-1] + np.random.normal(0, sigma)
-    simulated_returns.append(new_return)
-
-# Convert simulated returns to cumulative future prices
-simulated_prices = [current_aapl_price * np.exp(np.sum(simulated_returns[:i])) for i in range(1, num_days + 1)]
-
-# Convert simulated prices to a DataFrame
-simulated_prices_df = pd.DataFrame(simulated_prices, columns=["Simulated AAPL Price"])
-
-# Calculate Mean, VaR, and ES
-mean_price = simulated_prices_df["Simulated AAPL Price"].mean()
-var_95 = np.percentile(simulated_prices_df["Simulated AAPL Price"], 5)  # 5th percentile for 95% VaR
-es_95 = simulated_prices_df[simulated_prices_df["Simulated AAPL Price"] <= var_95]["Simulated AAPL Price"].mean()
-
-# Display the results
-print("Mean Price:", mean_price)
-print("VaR (95%):", var_95)
-print("Expected Shortfall (95%):", es_95)
-print("Simulated Prices for 10 Days:")
-print(simulated_prices_df)
+print(mean_price, var_95, es_95)
